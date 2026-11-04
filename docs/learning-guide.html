@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitAgent 学习指南 · 从 Java 到 AI Agent 的思考路程</title>
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #ffffff; --ink: #1e293b; --muted: #64748b;
+    --brand: #2c5364; --brand2: #0f9b8e; --accent: #e11d48;
+    --code-bg: #0f172a; --code-ink: #e2e8f0; --border: #e2e8f0;
+    --warn-bg: #fff7ed; --warn-bd: #fdba74; --ok-bg: #f0fdf4; --ok-bd: #86efac;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, "Microsoft YaHei", "PingFang SC", sans-serif;
+         background: var(--bg); color: var(--ink); line-height: 1.75; }
+  .hero { background: linear-gradient(135deg, #0f2027, #203a43 55%, #2c5364); color: #fff;
+          padding: 64px 24px 56px; text-align: center; }
+  .hero h1 { margin: 0 0 10px; font-size: 34px; letter-spacing: 3px; }
+  .hero p { opacity: .8; margin: 6px auto; max-width: 720px; font-size: 15px; }
+  .hero .badge { display: inline-block; margin-top: 16px; padding: 6px 16px; border: 1px solid rgba(255,255,255,.35);
+                 border-radius: 99px; font-size: 13px; opacity: .9; }
+  .wrap { max-width: 880px; margin: -28px auto 60px; padding: 0 16px; }
+  .toc { background: var(--card); border-radius: 16px; box-shadow: 0 10px 30px rgba(15,32,39,.10);
+         padding: 24px 28px; }
+  .toc h2 { margin: 0 0 12px; font-size: 17px; color: var(--brand); }
+  .toc ol { margin: 0; padding-left: 22px; columns: 2; column-gap: 32px; }
+  .toc li { margin: 5px 0; font-size: 14px; break-inside: avoid; }
+  .toc a { color: var(--ink); text-decoration: none; }
+  .toc a:hover { color: var(--brand2); }
+  .toc .lvl2 { color: var(--muted); font-size: 13px; }
+  section.card { background: var(--card); border-radius: 16px; box-shadow: 0 8px 24px rgba(15,32,39,.07);
+                 padding: 34px 38px; margin-top: 26px; }
+  section h2 { margin: 0 0 4px; font-size: 24px; color: var(--brand); }
+  section h2 .no { color: var(--brand2); font-size: 16px; margin-right: 8px; vertical-align: 2px; }
+  section h3 { margin: 26px 0 8px; font-size: 16px; color: var(--brand); border-left: 4px solid var(--brand2);
+               padding-left: 10px; }
+  .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 18px; }
+  p { margin: 10px 0; font-size: 15px; }
+  ul, ol { margin: 8px 0 12px; padding-left: 24px; font-size: 15px; }
+  li { margin: 5px 0; }
+  pre { background: var(--code-bg); color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+        overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; }
+  code { font-family: "Cascadia Code", Consolas, monospace; }
+  p code, li code, td code { background: #eef2f6; color: #0f4c5c; padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+  .intuition { background: var(--warn-bg); border: 1px solid var(--warn-bd); border-radius: 10px;
+               padding: 12px 16px; margin: 12px 0; font-size: 14.5px; }
+  .truth { background: var(--ok-bg); border: 1px solid var(--ok-bd); border-radius: 10px;
+           padding: 12px 16px; margin: 12px 0; font-size: 14.5px; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px;
+         margin-right: 8px; vertical-align: 1px; }
+  .tag.i { background: #ffedd5; color: #c2410c; }
+  .tag.t { background: #dcfce7; color: #15803d; }
+  .tag.q { background: #e0e7ff; color: #4338ca; }
+  .qa { border: 1px dashed #c7d2fe; border-radius: 10px; padding: 12px 16px; margin: 10px 0; background: #f8faff; }
+  .qa b { color: #3730a3; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+  th { background: #f1f5f9; color: var(--brand); }
+  .path { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 12px 0; font-size: 13px; }
+  .path span { background: #eef2f6; border-radius: 7px; padding: 4px 10px; color: #0f4c5c; font-weight: 600; }
+  .path .arr { background: none; color: var(--muted); padding: 0; }
+  .footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 40px; }
+  @media (max-width: 640px) { .toc ol { columns: 1; } section.card { padding: 24px 20px; } }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>FitAgent 学习指南</h1>
+  <p>从"我会写 Java"到"我能讲清一个 AI Agent 系统"的思考路程<br>
+     每一个知识点都按你的思路来：先凭直觉想，再发现不对，最后追到真相</p>
+  <span class="badge">Java 21 · Spring Boot 4.1 · MyBatis-Plus · JWT · Spring AI · DeepSeek</span>
+</div>
+
+<div class="wrap">
+
+<div class="toc">
+  <h2>📑 目录（由浅入深，建议按顺序读）</h2>
+  <ol>
+    <li><a href="#c1">一次 HTTP 请求的完整旅程</a></li>
+    <li><a href="#c2">分层架构：为什么要拆 Controller / Service / Mapper</a></li>
+    <li><a href="#c3">MySQL：从"数组直觉"到 B+ 树与索引</a></li>
+    <li><a href="#c4">事务与并发：唯一索引如何兜底"一天只能打一次"</a></li>
+    <li><a href="#c5">MyBatis-Plus：SQL 到底谁在写</a></li>
+    <li><a href="#c6">JWT：那个"身份牌"是怎么验的</a></li>
+    <li><a href="#c7">安全纵深：BCrypt / CORS / 过滤器链</a></li>
+    <li><a href="#c8">Redis：为什么"快"是个结果而不是原因</a></li>
+    <li><a href="#c9">AI 第一课：LLM 是"下一个词预测器"</a></li>
+    <li><a href="#c10">Transformer 宏观：embedding 与 Attention</a></li>
+    <li><a href="#c11">Prompt 工程：本项目 system prompt 拆解</a></li>
+    <li><a href="#c12">RAG：给大模型装外挂知识库</a></li>
+    <li><a href="#c13">Agent 与 Function Calling：模型如何"动手查数据"</a></li>
+    <li><a href="#c14">Spring AI：框架替你做了什么</a></li>
+    <li><a href="#c15">面试话术库：30 秒介绍 + 亮点 + 追问应答 + 八股速记卡</a></li>
+  </ol>
+</div>
+
+<!-- ===================== 第 1 章 ===================== -->
+<section class="card" id="c1">
+  <h2><span class="no">01</span>一次 HTTP 请求的完整旅程</h2>
+  <p class="sub">先在脑里把一条请求走一遍，后面所有章节都是这条路线上某个点的放大。</p>
+
+  <div class="intuition"><span class="tag i">直觉</span>你从前写 Java 时可能以为：浏览器点一下 → 服务器"某个方法"被调用 → 返回一个页面。至于中间发生了什么，是个黑盒。</div>
+
+  <p>FitAgent 里，你在浏览器点"打卡"，发生的完整旅程是这样：</p>
+
+  <div class="path">
+    <span>浏览器 / 前端 Vue</span><span class="arr">→</span>
+    <span>HTTP 请求 (POST /api/checkins + JWT)</span><span class="arr">→</span>
+    <span>Tomcat (Servlet 容器)</span><span class="arr">→</span>
+    <span>Security 过滤器链（验 JWT）</span><span class="arr">→</span>
+    <span>DispatcherServlet 路由</span><span class="arr">→</span>
+    <span>CheckinController</span><span class="arr">→</span>
+    <span>CheckinService</span><span class="arr">→</span>
+    <span>CheckinMapper</span><span class="arr">→</span>
+    <span>MySQL（B+ 树查找）</span><span class="arr">→</span>
+    <span>JSON 响应原路返回</span>
+  </div>
+
+  <h3>几个必须能讲的关键点</h3>
+  <ul>
+    <li><b>Tomcat 是"服务器"</b>：Spring Boot 内嵌了它。它的职责是监听端口、接收 TCP 连接、解析 HTTP 报文成对象，再交给你的代码。你写的 Controller 只是 Tomcat 的"员工"。</li>
+    <li><b>路由（Routing）</b>：Tomcat 根据 URL 和 HTTP 方法找到对应的 Controller 方法。`POST /api/checkins` 精确匹配到 `CheckinController.checkin()`。</li>
+    <li><b>为什么叫"控制器"</b>：它只做三件事——收参数、调 Service、包返回。逻辑不放这里，是因为"谁在调用"会变（前端、App、测试），但"业务规则"不变。</li>
+    <li><b>JSON 是"运输格式"</b>：前端是 JS 对象，后端是 Java 对象，两边语言不同，用 JSON 文本作为中间语言。Jackson 负责互相翻译（序列化/反序列化）。</li>
+  </ul>
+
+  <div class="truth"><span class="tag t">真相</span>一个 Web 框架的实质就是两件事：<b>把网络报文翻译成方法调用</b>（反向），<b>把返回值翻译成网络报文</b>（正向）。你能讲清这条链路上的每一步，就已经超过了 80% 的候选人。</div>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>一个 POST 请求到你后端，经历了哪些组件？<br><b>答：</b>Tomcat 解析 HTTP → Spring Security 过滤器链做认证鉴权 → DispatcherServlet 按 URL 路由到 Controller → Service 处理业务 → Mapper 访问数据库 → 结果序列化成 JSON 返回。全程无状态，靠 JWT 传递身份。</div>
+</section>
+
+<!-- ===================== 第 2 章 ===================== -->
+<section class="card" id="c2">
+  <h2><span class="no">02</span>分层架构：为什么要拆 Controller / Service / Mapper</h2>
+  <p class="sub">你已经懂每层做什么，这章讲"为什么非拆不可"——这是面试追问的落点。</p>
+
+  <div class="intuition"><span class="tag i">直觉</span>代码少的时候，全写在一个类里不是更快吗？查数据库、算逻辑、返回结果，一锅端。</div>
+
+  <p>小项目确实可以。但 FitAgent 里有一个真实案例，说明为什么必须拆：</p>
+  <ul>
+    <li><b>"一天只能打一次卡"</b>这条规则放在哪？放在 Controller 里，那"前端调用"和"AI 教练工具调用"就各写一遍逻辑，改一处漏一处。</li>
+    <li>放在 <b>Service</b> 里，所有入口（Controller、工具调用、将来的定时任务）自动共享这条规则。</li>
+    <li><b>Mapper</b> 只负责"和数据库说话"；<b>Entity</b> 是表和 Java 对象的映射；<b>DTO</b> 是"对外收发的样子"。三者不同：Entity 可以带密码字段（内部用），DTO 绝不能把密码返回给前端。</li>
+  </ul>
+
+  <h3>一句话记住每层的职责</h3>
+  <table>
+    <tr><th>层</th><th>职责</th><th>本项目的例子</th></tr>
+    <tr><td>Controller</td><td>收参数、调 Service、包返回（薄）</td><td>CheckinController</td></tr>
+    <tr><td>Service</td><td>业务规则、事务、编排（厚）</td><td>CheckinServiceImpl：先查重、再插入</td></tr>
+    <tr><td>Mapper / Repository</td><td>数据库访问</td><td>CheckinMapper extends BaseMapper</td></tr>
+    <tr><td>Entity</td><td>表的 Java 映射</td><td>Checkin @TableName("checkins")</td></tr>
+    <tr><td>DTO / VO</td><td>接口收发的形状</td><td>CheckinRequest / PlanView</td></tr>
+    <tr><td>Common</td><td>横切：统一返回、异常、工具</td><td>ApiResponse、GlobalExceptionHandler</td></tr>
+    <tr><td>Config</td><td>装配：告诉框架"怎么跑"</td><td>SecurityConfig、MybatisPlusMetaHandler</td></tr>
+    <tr><td>Security</td><td>认证与授权</td><td>JwtUtil、JwtAuthenticationFilter</td></tr>
+  </table>
+
+  <div class="truth"><span class="tag t">真相</span>分层的本质是<b>控制变化的影响面</b>：数据库从 MySQL 换成 PostgreSQL，只动 Mapper/Entity；接口格式变了，只动 DTO/Controller；业务规则变了，只动 Service。每层只对自己负责，改动不扩散。</div>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>为什么查重逻辑放 Service 不放 Controller？<br><b>答：</b>因为"同一天不能重复打卡"是业务规则，不是接口行为。任何入口（前端、AI 工具、未来新客户端）都必须遵守，放 Service 才能保证规则唯一、复用、可测试。Controller 只负责 HTTP 层的事。</div>
+</section>
+
+<!-- ===================== 第 3 章 ===================== -->
+<section class="card" id="c3">
+  <h2><span class="no">03</span>MySQL：从"数组直觉"到 B+ 树与索引</h2>
+  <p class="sub">按你自己的思考路程展开：你以为数据像数组，其实它是一棵树。</p>
+
+  <div class="intuition"><span class="tag i">直觉</span>数据库里有一张 users 表，1 号、2 号、3 号……用户一条条排着，像数组一样，id 就是下标。查 id=5 就是"取第 5 个"。按其他字段查，就像遍历数组，一个个看过去。</div>
+
+  <p>直觉没有全错，但漏了最关键的一层：<b>数据不是"排"在内存数组里，而是存在磁盘页（Page）里</b>。磁盘的随机读比内存慢 10 万倍，所以"一个个看过去"是灾难。</p>
+
+  <h3>InnoDB 的真实结构：B+ 树</h3>
+  <ul>
+    <li>整张表是一棵 B+ 树，<b>主键（id）是排序键</b>。树的根页、中间页只存"键 + 子页指针"，<b>最底层的叶子页才存真实数据行</b>。</li>
+    <li>查 `WHERE id = 5`：从根页出发，按二分逐层往下，3~4 层就能到叶子页——<b>磁盘访问次数 = 树高</b>，与数据量几乎无关（百万行和十亿行树高差不多）。这就是为什么主键查询永远快。</li>
+    <li>查 `WHERE username = 'tom'`：主键树帮不上忙，InnoDB 只能<b>遍历整棵主键树的叶子页</b>（全表扫描）——这就是你直觉里的"遍历"。</li>
+  </ul>
+
+  <h3>索引 = 另一棵 B+ 树</h3>
+  <div class="truth"><span class="tag t">真相</span>你的直觉"索引就是把某字段排个序"方向对了，但要升级成：<b>索引就是为这个字段另建一棵 B+ 树</b>，叶子页存"该字段的值 + 对应行的主键"。查 `username = 'tom'` 时：先在这棵小树里二分找到 tom → 拿到主键 → 回主键树取整行（回表）。两层查找，依然很快。</div>
+
+  <ul>
+    <li>本项目 `checkins` 表建了 <code>UNIQUE KEY uk_user_date (user_id, checkin_date)</code>——<b>联合唯一索引</b>。它既是"同一天只能一次"的约束，也是"按用户+日期查"的加速器，一石二鸟。</li>
+    <li><b>复合索引的最左前缀原则</b>：`(user_id, checkin_date)` 能加速 `WHERE user_id=?`，也能加速 `WHERE user_id=? AND checkin_date=?`，但不能加速只按 `checkin_date` 查。面试高频。</li>
+    <li><b>为什么叶子页不直接存数据而是存主键</b>：避免每加一个索引就把数据行复制一遍；同时保证所有索引数据一致（只维护一份主键树上的数据）。</li>
+  </ul>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>主键用自增还是 UUID？<br><b>答：</b>InnoDB 的主键树是有序的。自增 id 插入时永远追加到末尾，不会触发页分裂；UUID 随机，插入时可能插到中间，频繁页分裂、写放大，还让树更矮胖、缓存命中率下降。所以单机 MySQL 优先自增，分布式才考虑雪花/UUID（本项目 id 用 AUTO_INCREMENT）。</div>
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>为什么 MySQL 不用哈希索引当默认？<br><b>答：</b>哈希只支持等值查询，不支持范围查询（&gt; &lt; between）和排序，也没法做最左前缀。B+ 树的叶子页双向链表天然支持范围扫描，所以范围查询、排序、分组都能吃到索引红利。</div>
+</section>
+
+<!-- ===================== 第 4 章 ===================== -->
+<section class="card" id="c4">
+  <h2><span class="no">04</span>事务与并发：唯一索引如何兜底"一天只能打一次"</h2>
+  <p class="sub">为什么光在代码里"先查再插"还不够？因为并发会让两个请求同时通过检查。</p>
+
+  <div class="intuition"><span class="tag i">直觉</span>打卡逻辑很简单：先查今天有没有记录，没有就插入。写完收工。</div>
+
+  <p>这个直觉在一个并发瞬间会翻车：用户疯狂连点两下，两个请求几乎同时到达，<b>两个请求都先执行查询，都发现"今天还没有记录"</b>，然后两个都执行插入——产生两条同日记录。</p>
+
+  <p>FitAgent 做了两层防护（这就是可讲的工程思维）：</p>
+  <ul>
+    <li><b>应用层（第一道）</b>：`CheckinServiceImpl.checkin()` 先 `selectCount` 查今天是否已打卡，有就抛 409。这是"快路径"，给用户友好提示。</li>
+    <li><b>数据库层（第二道，兜底）</b>：`UNIQUE(user_id, checkin_date)` 唯一索引。即使两个请求都穿过第一道，数据库也只允许一条插入成功，第二条直接违反唯一约束报错。全局异常处理器把它转成 409。</li>
+  </ul>
+
+  <h3>事务：多个 SQL 要么全成，要么全无</h3>
+  <p>训练计划创建要插两条数据（plans 主表 + plan_items 明细），中途失败怎么办？</p>
+  <div class="truth"><span class="tag t">真相</span><code>@Transactional</code> 让这两次插入处于同一个数据库事务里：任一失败，整体回滚，不会出现"有计划没明细"的脏数据。ACID 四个字母的含义（原子性/一致性/隔离性/持久性）是必背。</div>
+  <ul>
+    <li><b>隔离级别</b>：MySQL 默认 REPEATABLE READ（可重复读），靠 MVCC 实现快照读，读不加锁、写不阻塞读。</li>
+    <li><b>锁</b>：`UPDATE/DELETE` 走当前读，会加行锁；唯一索引冲突时 InnoDB 对索引加"插入意向锁 + 冲突检测"。你不需要背锁的细节，但要能说清"唯一约束在并发下依然可靠"。</li>
+    <li>本项目 <code>PlanServiceImpl.create()</code> 和 <code>delete()</code> 都标了 <code>@Transactional</code>（多语句才需要；单条 insert 天然原子）。</li>
+  </ul>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>并发下如何防止重复插入？<br><b>答：</b>三层配合：① 应用层先查后插，保证正常路径友好；② 数据库唯一索引做最终兜底，并发时数据库只放行一个；③ 捕获唯一约束冲突异常，转成友好提示。核心原则：<b>校验放应用，约束放数据库</b>。</div>
+</section>
+
+<!-- ===================== 第 5 章 ===================== -->
+<section class="card" id="c5">
+  <h2><span class="no">05</span>MyBatis-Plus：SQL 到底谁在写</h2>
+  <p class="sub">Repository / Mapper / MyBatis-Plus / JPA，这一坨到底什么关系——你最想搞清楚的问题。</p>
+
+  <div class="intuition"><span class="tag i">直觉</span>听说有三种东西：JPA 的 Repository、MyBatis 的 Mapper、MyBatis-Plus。名字都带"数据访问"，感觉差不多，但分不清。</div>
+
+  <p>记住一句话就能分清：<b>差别不在叫法，而在"SQL 归谁写"</b>。</p>
+  <table>
+    <tr><th>方案</th><th>SQL 谁写</th><th>特点</th></tr>
+    <tr><td>Spring Data JPA（Repository）</td><td>框架根据"方法名"生成</td><td>`findByUsername` 自动翻译成 SQL；自动映射实体；开发最快，但复杂查询写法受限</td></tr>
+    <tr><td>MyBatis（Mapper）</td><td>你自己写在 XML / 注解里</td><td>SQL 完全可控，适合精细调优；样板代码多</td></tr>
+    <tr><td>MyBatis-Plus（BaseMapper）</td><td>简单 CRUD 框架生成，复杂 SQL 你自己写</td><td>MyBatis 的增强版：内置 `selectById/insert/selectList` 等通用方法 + `Wrapper` 拼条件。国内企业最流行</td></tr>
+  </table>
+
+  <h3>本项目怎么用 MyBatis-Plus</h3>
+  <pre><code>// 1. 继承 BaseMapper 就自带全套 CRUD，一行 SQL 都不用写
+@Mapper
+public interface CheckinMapper extends BaseMapper&lt;Checkin&gt; {}
+
+// 2. 复杂查询用 LambdaQueryWrapper 拼条件（类型安全：编译期就能发现字段拼错）
+checkinMapper.selectCount(
+    new LambdaQueryWrapper&lt;Checkin&gt;()
+        .eq(Checkin::getUserId, userId)
+        .eq(Checkin::getCheckinDate, today));
+
+// 3. 等价 SQL 长这样（你能讲出这句，面试就过关了）
+// SELECT COUNT(*) FROM checkins WHERE user_id = ? AND checkin_date = ?</code></pre>
+
+  <ul>
+    <li><b>为什么用 `User::getUsername` 这种写法</b>：方法引用 + Lambda，编译期检查字段存在。手写字符串 `"username"` 拼错只会在运行时报错。</li>
+    <li><b>实体注解</b>：`@TableName("checkins")` 映射表名、`@TableId(type = IdType.AUTO)` 主键自增、`@TableField(fill = FieldFill.INSERT)` 让 `MybatisPlusMetaHandler` 自动填 created_at。</li>
+    <li><b>本项目从 JPA 换到 MyBatis-Plus 本身就是个面试故事</b>："两个都用过，知道 JPA 靠方法名生成 SQL、MP 靠 BaseMapper + Wrapper，最终因为……选了 MP。" 比"我只会一个"有说服力得多。</li>
+  </ul>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>为什么不直接用 JPA？<br><b>答：</b>JPA 对标准 CRUD 很高效，但复杂统计、多表联查时要写 JPQL/Criteria，上手成本高、SQL 不可见。MyBatis-Plus 兼容原生 SQL、内置通用 CRUD、国内生态成熟，团队协作成本低。本项目增删改查为主 + 少量聚合查询，MP 最合适。</div>
+</section>
+
+<!-- ===================== 第 6 章 ===================== -->
+<section class="card" id="c6">
+  <h2><span class="no">06</span>JWT：那个"身份牌"是怎么验的</h2>
+  <p class="sub">回答你之前的疑问：Controller 里没有 jwt 注解，校验到底在哪发生？</p>
+
+  <div class="intuition"><span class="tag i">直觉</span>登录成功后发一个"身份牌"，以后每个请求带着它，服务器就知道是谁。至于它存在哪、怎么验，不清楚。以为它是全局 static 变量，或者"Spring 自动塞进去的"。</div>
+
+  <p>两个直觉都值得修正：</p>
+  <ul>
+    <li><b>不是全局 static 变量</b>：JWT 是"无状态"的，服务器不存它。它就是一串字符串，由前端放在 HTTP 头 `Authorization: Bearer xxx` 里，随每个请求发来。</li>
+    <li><b>也不是凭空自动的</b>：是 Spring Security 的<b>过滤器链</b>在 Controller 之前拦截了请求。你写 Controller 时看不到 jwt 代码，是因为校验发生在"更早"的环节。</li>
+  </ul>
+
+  <h3>JWT 是什么：三段字符串</h3>
+  <pre><code>eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoicDIifQ.4Xr9zU5y_aC...</code></pre>
+  <table>
+    <tr><th>段</th><th>内容</th><th>作用</th></tr>
+    <tr><td>Header</td><td>算法信息（HS256）</td><td>告诉验证方"用什么算法验签"</td></tr>
+    <tr><td>Payload</td><td>用户 id、用户名、过期时间</td><td>携带身份信息（base64，不加密！）</td></tr>
+    <tr><td>Signature</td><td>用服务器密钥对前两段算的签名</td><td>防篡改：改一个字节，验签即失败</td></tr>
+  </table>
+
+  <h3>验证流程（JwtAuthenticationFilter）</h3>
+  <div class="path">
+    <span>请求进来</span><span class="arr">→</span>
+    <span>过滤器取 Authorization 头</span><span class="arr">→</span>
+    <span>JwtUtil 验签 + 验过期</span><span class="arr">→</span>
+    <span>通过 → 把 LoginUser 放入 SecurityContext</span><span class="arr">→</span>
+    <span>Controller 用 @AuthenticationPrincipal 直接拿</span>
+  </div>
+
+  <ul>
+    <li><b>校验失败/无 token</b>：不放入身份，Security 配置的 `.anyRequest().authenticated()` 直接拦下，返回 401 JSON。</li>
+    <li><b>为什么放 SecurityContext 而不是全局变量</b>：因为请求是并发的。每个请求一个线程，SecurityContext 是"线程隔离"的——Tomcat 的线程池里，线程 A 的身份不会泄漏给线程 B。这正是"全局 static"方案会出的安全事故。</li>
+    <li><b>无状态的收益</b>：服务器不存 token，任何一台机器都能独立验签 → 水平扩容时不用同步 session；Session 方案则要处理"session 存哪台机器"的问题（粘性会话或 Redis 共享）。</li>
+  </ul>
+
+  <div class="truth"><span class="tag t">真相</span>Controller 里看不到 JWT 代码，是因为 Spring Security 用"过滤器链"把横切逻辑（认证、鉴权、CORS、异常转 JSON）都编排在请求进入 Controller <b>之前</b>。你写的 Controller 只关注业务，这就是"横切关注点"的经典实践。</div>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>JWT 和 Session 的区别？<br><b>答：</b>Session 是服务端状态，存在服务器内存/Redis，客户端只存一个 ID；JWT 是客户端状态，身份信息随 token 走，服务端无状态。JWT 适合前后端分离、水平扩展；缺点是失效难（没到过期时间踢不掉）和 Payload 不加密（不能放敏感信息）。</div>
+</section>
+
+<!-- ===================== 第 7 章 ===================== -->
+<section class="card" id="c7">
+  <h2><span class="no">07</span>安全纵深：BCrypt / CORS / 过滤器链</h2>
+  <p class="sub">除了 JWT，一个"安全的登录系统"还有好几层，面试官爱逐个问。</p>
+
+  <h3>① 密码为什么用 BCrypt</h3>
+  <ul>
+    <li><b>绝不存明文</b>：数据库被拖库时，明文密码直接泄露。本项目存的是 BCrypt 哈希。</li>
+    <li><b>为什么不是 MD5/SHA</b>：这类"快速哈希"一秒钟能算几亿次，暴力破解极快；而且相同密码哈希相同，能用彩虹表反查。</li>
+    <li><b>BCrypt 的杀手锏</b>：自动加随机盐（同一密码每次哈希结果不同）+ 故意慢（设计上每次计算需要一定耗时），暴力破解成本被拉高几个数量级。</li>
+    <li><b>验证</b>：`passwordEncoder.matches(输入的密码, 库里存的哈希)` —— 注意不是把输入的密码再哈希一次比相等，而是让 BCrypt 用存储哈希里的盐重算。</li>
+  </ul>
+
+  <h3>② CORS 是什么</h3>
+  <p>浏览器安全策略：默认禁止一个域名（前端 localhost）的页面用 fetch 去调另一个域名/端口（后端 8080）的接口。所以后端要声明"我允许这些来源访问"（`SecurityConfig` 里的 `CorsConfiguration`）。这是<b>浏览器</b>的规则，不是服务器的。App、Postman、curl 不受此限制。</p>
+
+  <h3>③ CSRF 为什么可以关掉</h3>
+  <p>CSRF 攻击利用的是"浏览器自动携带 Cookie"的机制，诱导已登录用户发出请求。但本项目用 JWT 放在自定义 Header 里，<b>没有 Cookie 可被自动携带</b>，且攻击者无法读取/伪造你的 Header，所以关掉 CSRF 防护是安全的——面试时说得出这个因果链，就是加分项。</p>
+
+  <h3>④ 过滤器链的顺序</h3>
+  <pre><code>SecurityFilterChain:
+  CORS 过滤器 → JWT 认证过滤器 → 授权规则 → 异常处理(401 JSON) → Controller</code></pre>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>你项目的密码安全是怎么做的？<br><b>答：</b>三层：① 传输层用 HTTPS；② 存储层用 BCrypt 加盐哈希，数据库泄露也无法反推密码；③ 校验层用 matches 比对哈希而非比明文。开发期也杜绝把密码打到日志里。</div>
+</section>
+
+<!-- ===================== 第 8 章 ===================== -->
+<section class="card" id="c8">
+  <h2><span class="no">08</span>Redis：为什么"快"是个结果而不是原因</h2>
+  <p class="sub">本项目已引入 Redis 依赖（为后续会话管理/缓存预留），理解它的本质，面试才有话讲。</p>
+
+  <div class="intuition"><span class="tag i">直觉</span>Redis 快是因为"它把数据存在内存里"。MySQL 也存在内存缓存，为什么没它快？</div>
+
+  <p>内存只是必要条件，真正的差距在三点：</p>
+  <ul>
+    <li><b>单线程 + 事件循环</b>：Redis 的请求处理是单线程的，没有线程切换、没有锁竞争、没有上下文切换开销。它把所有命令排队一个个执行，天然原子（所以 INCR 能当计数器/限流器用）。</li>
+    <li><b>IO 多路复用</b>：一个线程同时盯住成千上万个连接，哪个连接来数据就处理哪个，而不是"每连接一个线程"。</li>
+    <li><b>数据结构是设计出来的，不是凑出来的</b>：SDS 字符串、跳表（有序集合）、压缩列表……每个结构都为特定场景优化。`ZADD` 一条命令完成"排行榜插入+排序"。</li>
+  </ul>
+
+  <h3>典型应用场景（面试背这四个）</h3>
+  <table>
+    <tr><th>场景</th><th>怎么做</th></tr>
+    <tr><td>缓存</td><td>热点数据放 Redis，命中就不打 MySQL（缓存穿透/击穿/雪崩是必考题）</td></tr>
+    <tr><td>分布式 Session</td><td>多台服务器共享登录状态</td></tr>
+    <tr><td>分布式锁</td><td>SETNX + 过期时间（防死锁）</td></tr>
+    <tr><td>计数器 / 限流</td><td>INCR 原子自增</td></tr>
+  </table>
+
+  <div class="truth"><span class="tag t">真相</span>选型时记住：<b>Redis 适合"读多、单个数据小、要极低延迟、要原子操作"</b>的数据；MySQL 负责"要事务、要复杂查询、要持久可靠"的数据。它俩不是替代关系，是分工关系。</div>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>缓存穿透怎么解决？<br><b>答：</b>穿透是"查一个必然不存在的数据"，每次都打到数据库。解法：① 对查不到的 key 也缓存一个空值，短过期；② 布隆过滤器在缓存前拦截不存在的 key；③ 参数校验把非法请求挡在门外。</div>
+</section>
+
+<!-- ===================== 第 9 章 ===================== -->
+<section class="card" id="c9">
+  <h2><span class="no">09</span>AI 第一课：LLM 是"下一个词预测器"</h2>
+  <p class="sub">AI 八股从这里开始。先建立最朴素的正确心智模型。</p>
+
+  <div class="intuition"><span class="tag i">直觉</span>大模型像"超级搜索引擎"或"会思考的数据库"——你问什么，它从知识库里"查"出答案。</div>
+
+  <p>这个直觉是错的，会导致你对模型的一切行为（幻觉、编造、不稳定）都感到困惑。正确的心智模型：</p>
+  <div class="truth"><span class="tag t">真相</span>大语言模型（LLM）是一个<b>概率函数</b>：给它一串文字，它输出"下一个最可能出现的词（及其概率）"。仅此而已。ChatGPT 的"回答"，本质是它一遍遍预测下一个词、把自己生成的内容继续喂给自己，滚出来的。</div>
+
+  <ul>
+    <li><b>Token（词元）</b>：模型不按字处理，按 token。"你好世界"可能被切成 3~5 个 token。模型一次只能看有限个 token——这个上限叫<b>上下文窗口</b>（本项目 DeepSeek 是 64K）。</li>
+    <li><b>为什么对话越长越贵</b>：每次提问，之前的所有对话都要重新作为输入处理（它是无状态的，不记得你）。长度翻倍，算力成本不止翻倍（attention 是平方级）。所以"把长文档丢给模型"很贵。</li>
+    <li><b>为什么会有幻觉</b>：它不是在"查答案"，而是在"生成最顺的词"。知识匮乏时，它会用"编一个合理的"来完成生成任务。这不是 bug，是它的工作方式。</li>
+    <li><b>温度（temperature）</b>：控制随机性。0 偏确定（代码/结构化），1 偏发散（创意）。本项目结构化分析想让它稳定输出 JSON，可以调低。</li>
+    <li><b>为什么需要 RAG 和工具</b>：模型训练数据有截止时间、不含你的私有数据、不知道你的数据库。所以我们要主动把"答案素材"喂给它（RAG），或让它自己动手查（工具调用）——这两件事就是第 12、13 章。</li>
+  </ul>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>大模型为什么会一本正经地胡说八道？<br><b>答：</b>因为它的训练目标是"预测下一个词的概率"，不是"保证事实正确"。训练语料里没覆盖的内容，它只能按语言规律生成一个"听起来合理"的答案，这就是幻觉的来源。所以生产系统要用 RAG 给它可靠资料、用工具调用拿真实数据、用提示词约束它"不知道就直说"。</div>
+</section>
+
+<!-- ===================== 第 10 章 ===================== -->
+<section class="card" id="c10">
+  <h2><span class="no">10</span>Transformer 宏观：embedding 与 Attention</h2>
+  <p class="sub">不背公式，讲清三个概念"为什么存在"——面试考的是理解，不是默写。</p>
+
+  <h3>① Embedding（嵌入）：把词变成向量</h3>
+  <div class="intuition"><span class="tag i">直觉</span>计算机不能直接理解"苹果"这两个字，得先把它变成数字。</div>
+  <div class="truth"><span class="tag t">真相</span>Embedding 把每个 token 映射成一个高维向量（比如 1536 维）。<b>关键性质：语义相近的词，向量距离也近</b>。"苹果"和"香蕉"的向量比"苹果"和"汽车"更接近。这就是"机器理解语义"的起点。RAG 里的向量检索，就是在这个向量空间里找最近邻。</div>
+
+  <h3>② Attention（注意力）：模型为什么能"看全局"</h3>
+  <ul>
+    <li>RNN 时代：模型一句句往后读，前面的内容记不住、会被冲淡（长依赖问题）。</li>
+    <li>Transformer 的答案：<b>每一个词在计算时，同时"看"句子里所有其他词</b>，并为每个词分配一个权重（注意力分数）——"这句话里，'它'最可能指的是'狗'，因为我'看'到了'狗'这个字"。</li>
+    <li>QKV 是什么：每个词生成三个向量——Query（我要找什么）、Key（我是什么）、Value（我携带的内容）。注意力分数 = Q 和所有 K 的相似度，然后按权重把 V 加权求和。白话版：<b>"我的问题（Q）和你的标签（K）越匹配，我就越重视你带的内容（V）"</b>。</li>
+  </ul>
+
+  <h3>③ 位置编码：为什么需要"顺序感"</h3>
+  <p>注意力是"不分先后"的——"我打你"和"你打我"的词完全一样。所以要把位置信息混进向量里，让模型知道"谁在前谁在后"。这就是位置编码存在的原因。</p>
+
+  <h3>④ 训练过程一句话</h3>
+  <p>预训练：拿海量文本，遮住后一个词让它预测，预测得准就调整参数（反向传播）。"看得越多，预测越准"，最终把语言规律、世界知识压缩进几千亿参数里。微调（SFT/RLHF）：再用人工标注的高质量对话数据继续训练，让它学会"回答问题"而不是"接话"。</p>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>为什么 Transformer 能并行训练，RNN 不行？<br><b>答：</b>RNN 必须按时间步一个个处理，第 t 步依赖第 t-1 步，无法并行。Transformer 的 attention 可以同时计算所有词之间的关系（矩阵运算），GPU 大规模并行，所以能吃到算力红利，这也是它能堆到千亿参数的原因之一。</div>
+</section>
+
+<!-- ===================== 第 11 章 ===================== -->
+<section class="card" id="c11">
+  <h2><span class="no">11</span>Prompt 工程：本项目 system prompt 拆解</h2>
+  <p class="sub">AI 面试的"实战题"：把你项目的 prompt 拿来逐句讲，比背概念有杀伤力。</p>
+
+  <p>FitAgent 的 AI 教练提示词（`AiCoachServiceImpl`）由四块拼成，每块都有明确目的：</p>
+
+  <pre><code>1. 角色与任务       → 你是 FitAgent 的 AI 健身教练，兼任注册营养师
+2. 用户画像         → 训练目标=减脂，身高=175cm
+3. 行为约束         → 需要数据时必须调用工具，禁止编造数字
+4. 知识资料(RAG)    → 下面是从知识库检索到的相关片段…</code></pre>
+
+  <h3>为什么要这样设计</h3>
+  <table>
+    <tr><th>Prompt 设计点</th><th>解决什么问题</th></tr>
+    <tr><td>给角色 + 给约束</td><td>限定回答视角（教练）和边界（不编数据）——减少幻觉和跑题</td></tr>
+    <tr><td>要求"先结论后理由、带数字"</td><td>引导输出格式，方便前端直接渲染</td></tr>
+    <tr><td>限制 200 字</td><td>控制 token 成本 + 保证体验</td></tr>
+    <tr><td>结构化分析要求"只输出 JSON"</td><td>让结果可直接解析成对象（AiAnalysisResponse）</td></tr>
+    <tr><td>RAG 片段注入 system</td><td>给模型"它没学过的资料"，答案有据可依</td></tr>
+  </table>
+
+  <div class="truth"><span class="tag t">真相</span>Prompt 工程不是玄学，本质是<b>把"模型的短板"在输入侧补掉</b>：它不知道你的数据 → 注入；它爱编 → 给约束；它输出乱 → 给格式模板。每写一句 prompt，都要能回答"这句解决模型的哪个问题"。</div>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>你的 AI 教练回答质量怎么保证？<br><b>答：</b>三层：① 输入侧，system prompt 给角色、约束和 RAG 资料，让它有据可依、禁止编造；② 数据侧，注册了工具函数，需要用户真实数据时模型主动调用，拿到的数字是数据库里的；③ 输出侧，结构化接口强制 JSON 格式并做解析兜底，模型输出不合规也不会把错误抛给用户。</div>
+</section>
+
+<!-- ===================== 第 12 章 ===================== -->
+<section class="card" id="c12">
+  <h2><span class="no">12</span>RAG：给大模型装外挂知识库</h2>
+  <p class="sub">本项目 RAG 的完整流程 + 为什么"关键词版"也能理直气壮地讲。</p>
+
+  <div class="intuition"><span class="tag i">直觉</span>想让 AI 懂健身知识，把知识库全塞进提示词里不就行了？</div>
+
+  <p>上下文窗口是有限的，几万字的知识库塞不进去，还很贵。RAG（检索增强生成）的思路是：<b>不全部塞，只塞"和问题最相关"的部分</b>。</p>
+
+  <h3>RAG 五步流程（本项目实现）</h3>
+  <div class="path">
+    <span>知识切分</span><span class="arr">→</span>
+    <span>向量化/索引</span><span class="arr">→</span>
+    <span>检索 top-k</span><span class="arr">→</span>
+    <span>拼进 prompt</span><span class="arr">→</span>
+    <span>生成回答</span>
+  </div>
+  <ol>
+    <li><b>切分（Chunking）</b>：`fitness_knowledge.txt` 按空行切成 15 段，每段是一个独立知识点。</li>
+    <li><b>索引</b>：生产级用 embedding 模型把每段变成向量存向量库；本项目检索打分直接用<b>关键词命中数</b>（BM25 的简化版）。</li>
+    <li><b>检索</b>：把用户问题拆成关键词（2 字以上中文词组 + 英文词），对每段计分，取 top3。</li>
+    <li><b>增强</b>：把这 3 段拼进 system prompt 的"知识库资料"。</li>
+    <li><b>生成</b>：模型结合资料 + 用户数据 + 人设，生成回答。</li>
+  </ol>
+
+  <h3>RAG vs 微调（必背对比）</h3>
+  <table>
+    <tr><th></th><th>RAG</th><th>微调（Fine-tuning）</th></tr>
+    <tr><td>做什么</td><td>检索外部资料拼进 prompt</td><td>继续训练模型参数</td></tr>
+    <tr><td>成本</td><td>低（无训练）</td><td>高（算力 + 数据标注）</td></tr>
+    <tr><td>更新知识</td><td>改文档即可，秒级生效</td><td>要重新训练</td></tr>
+    <tr><td>适合</td><td>垂直知识问答、私有数据</td><td>改变模型"行为风格"（如学会特定格式）</td></tr>
+  </table>
+
+  <div class="truth"><span class="tag t">真相</span>本项目用关键词检索而非向量检索，是为了<b>零外部依赖、本地可跑</b>。面试这样讲：<b>"我用关键词打分实现了 BM25 的简化版，完整流程（切分→索引→检索→增强→生成）与向量 RAG 完全一致，只是打分函数更朴素；生产环境换成 embedding + 向量库只需替换 retrieve 一个方法。"</b>——既诚实，又证明你懂全貌。</div>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>RAG 检索到的资料质量差怎么办？<br><b>答：</b>从链路各环节下手：切分粒度调优（过长稀释、过短丢上下文）、检索召回率提升（混合检索：向量 + 关键词）、重排（rerank 精排 top-k）、以及 prompt 侧要求模型"只基于资料回答，资料不足时明确说明"。</div>
+</section>
+
+<!-- ===================== 第 13 章 ===================== -->
+<section class="card" id="c13">
+  <h2><span class="no">13</span>Agent 与 Function Calling：模型如何"动手查数据"</h2>
+  <p class="sub">本项目最亮的点：AI 教练能自己决定"要不要查数据库"。</p>
+
+  <div class="intuition"><span class="tag i">直觉</span>想让 AI 回答"我最近体重变化"，就把数据查好拼进问题里再问它。</div>
+
+  <p>这是"拼接"思路，能做但呆板。Agent 的做法是：<b>把工具交到模型手里，让它自己决定何时调用</b>。</p>
+
+  <h3>Function Calling 的原理（流程）</h3>
+  <div class="path">
+    <span>把工具"说明书"发给模型</span><span class="arr">→</span>
+    <span>模型判断需要数据</span><span class="arr">→</span>
+    <span>返回"我要调用 getRecentMetrics(30)"</span><span class="arr">→</span>
+    <span>你的代码执行查询</span><span class="arr">→</span>
+    <span>把结果回传给模型</span><span class="arr">→</span>
+    <span>模型结合结果生成回答</span>
+  </div>
+  <ol>
+    <li>Spring AI 把每个 <code>@Tool</code> 方法编译成"工具说明书"（名字 + 参数描述）发给 DeepSeek。</li>
+    <li>模型"看"到问题"我该吃多少蛋白"+"你的体重 72.5kg 是多久前的？"，判断需要数据 → 在响应里声明"调用 getRecentMetrics"。</li>
+    <li>Spring AI 拦截这个声明，真正执行你的 Java 方法，把结果（JSON）塞回对话。</li>
+    <li>模型拿到数据，完成最终回答。</li>
+  </ol>
+
+  <h3>Agent 的定义（ReAct 一句话）</h3>
+  <div class="truth"><span class="tag t">真相</span>Agent = 模型 + 工具 + 循环（Reason 思考 → Act 行动 → 观察结果 → 再思考）。FitAgent 的 AI 教练就是最小可用的 Agent：它有知识库（RAG）、有行动能力（工具）、会主动获取上下文再作答。普通 API 调用是"一次性翻译"，Agent 是"带工具的闭环"。</div>
+
+  <h3>本项目工具设计里的面试加分点</h3>
+  <ul>
+    <li><b>数据隔离</b>：`AiTools` 每次请求 new 一个实例并绑定当前 userId，工具内部只查这个用户的数据——"我的工具天然防越权"。</li>
+    <li><b>返回 String 而非对象</b>：工具返回值最终要"给模型看"，直接返回 JSON 字符串，模型最容易消费。</li>
+    <li><b>描述要具体</b>：`@Tool(description = "获取用户最近指定天数的体重/胸围/腰围/臀围/体脂率记录")`——描述写得越清楚，模型越知道什么时候该调用它。这就是"工具的 prompt 工程"。</li>
+  </ul>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>你的 AI 教练怎么拿到用户真实数据？<br><b>答：</b>通过 Function Calling。我给模型注册了四个工具（查三维、查打卡、查连续天数、查训练计划）。模型在回答中判断"这个问题需要用户数据"，就会要求调用对应工具；Spring AI 执行工具、把数据库里的真实数据回传给模型，模型再基于这些数据回答。全程我一行查库代码都没写死在 prompt 里。</div>
+</section>
+
+<!-- ===================== 第 14 章 ===================== -->
+<section class="card" id="c14">
+  <h2><span class="no">14</span>Spring AI：框架替你做了什么</h2>
+  <p class="sub">看看如果没有框架，你要手写多少东西。</p>
+
+  <p>Spring AI 是 Spring 官方的 AI 集成框架（2.0 起支持 Boot 4）。它把"调用大模型"这件脏活封装掉了：</p>
+  <table>
+    <tr><th>你手写要做的</th><th>Spring AI 提供的</th></tr>
+    <tr><td>构造 HTTP 请求调 DeepSeek API</td><td><code>ChatClient</code>：一行 <code>.prompt().user().call()</code></td></tr>
+    <tr><td>管理 API Key、请求头</td><td>配置文件 <code>spring.ai.deepseek.api-key</code> 自动装配</td></tr>
+    <tr><td>Function Calling 协议（工具描述 JSON、解析模型调用声明、回传结果）</td><td><code>@Tool</code> 注解自动生成工具说明书并处理整个调用循环</td></tr>
+    <tr><td>JSON 结构化输出解析</td><td><code>chatClient.prompt()...call().entity(Class)</code></td></tr>
+    <tr><td>对话记忆管理</td><td>ChatMemory + Advisor（本项目为保持简单未启用多轮记忆）</td></tr>
+  </table>
+
+  <div class="truth"><span class="tag t">真相</span>Spring AI 的定位和 Spring MVC 完全一致：<b>把"和外部系统打交道的协议细节"封装成声明式 API</b>，让开发者只写业务。框架会在底层自动完成"模型厂商切换"（DeepSeek 换 OpenAI 只改配置）——这本身就是"面向接口编程"的活教材。</div>
+
+  <div class="qa"><span class="tag q">面试</span><b>问：</b>为什么选 Spring AI 而不是直接 HTTP 调 DeepSeek？<br><b>答：</b>① 声明式 API，代码量少一个数量级；② 自动处理 Function Calling 协议细节，我专注业务工具；③ 厂商无关，配置可切换模型；④ 与 Spring 生态（Security/事务/配置）无缝整合，符合团队技术栈。</div>
+</section>
+
+<!-- ===================== 第 15 章 ===================== -->
+<section class="card" id="c15">
+  <h2><span class="no">15</span>面试话术库：30 秒介绍 + 亮点 + 追问应答 + 八股速记卡</h2>
+  <p class="sub">最后一步：把项目讲成故事。照着练，直到能不看稿讲出来。</p>
+
+  <h3>① 30 秒项目介绍（背熟）</h3>
+  <div class="truth"><span class="tag t">话术</span>"我做的项目叫 FitAgent，是一个健身管理 Agent 系统。技术栈是 Spring Boot 4 + MyBatis-Plus + MySQL + Redis，AI 部分用 Spring AI 接 DeepSeek。功能上：用户注册登录（JWT 认证）、每日打卡、身体三维记录和趋势曲线、训练计划管理，以及一个 AI 健身教练——它能基于用户的真实数据做分析建议。我负责了全部设计和开发。这个项目的亮点是它同时覆盖传统后端和 AI Agent 两条线：后端有分层架构、数据库设计、安全认证；AI 部分做了 RAG 知识检索和 Function Calling 工具调用，让模型能主动查用户的真实数据再回答。"</div>
+
+  <h3>② 三个核心亮点（每个展开能讲 3 分钟）</h3>
+  <table>
+    <tr><th>亮点</th><th>一句话</th><th>可被追问的点</th></tr>
+    <tr><td>并发下的唯一约束兜底</td><td>"一天只能打一次卡"做了应用层 + 数据库唯一索引两层防护</td><td>为什么应用层不够、MVCC、隔离级别</td></tr>
+    <tr><td>Agent 工具调用 + 数据隔离</td><td>AI 教练通过 Function Calling 查真实数据，工具实例绑定 userId 防越权</td><td>Function Calling 流程、为什么返回 String、如何防提示注入</td></tr>
+    <tr><td>RAG 关键词版落地</td><td>完整 RAG 链路用 BM25 简化版实现，零外部依赖</td><td>RAG vs 微调、检索质量怎么保证、向量化怎么升级</td></tr>
+  </table>
+
+  <h3>③ 高频追问 + 应答要点</h3>
+  <div class="qa"><b>Q：项目里最难的问题是什么？</b> A：并发打卡重复插入。解决时意识到"应用层先查后插在并发下会失效"，最终靠数据库唯一索引兜底 + 全局异常转 409。这让我真正理解了"约束放数据库"。</div>
+  <div class="qa"><b>Q：JWT 泄露了怎么办？</b> A：缩短有效期 + 关键操作二次校验；服务端维护黑名单（Redis）可即时失效；Payload 不放敏感信息。</div>
+  <div class="qa"><b>Q：AI 回答如果乱说怎么办？</b> A：三层兜底：RAG 给资料、prompt 禁止编造、结构化解析失败时降级为原文展示，不把异常抛给用户。</div>
+  <div class="qa"><b>Q：为什么不全部用向量检索？</b> A：为了零外部依赖本地可跑。检索函数是可替换的，生产换 embedding + 向量库只改 retrieve 一个方法。</div>
+  <div class="qa"><b>Q：你的 Agent 有记忆吗？</b> A：无状态设计——每次请求重建上下文（用户画像 + RAG + 工具数据）。好处是简单、无状态、可水平扩展；多轮对话可加 ChatMemory 升级。</div>
+
+  <h3>④ AI 八股速记卡（考前 10 分钟过一遍）</h3>
+  <table>
+    <tr><th>概念</th><th>一句话记忆</th></tr>
+    <tr><td>Token</td><td>模型处理文字的最小单位；计费与上下文窗口都按它算</td></tr>
+    <tr><td>上下文窗口</td><td>模型一次能看的 token 上限；超了就截断/报错</td></tr>
+    <tr><td>幻觉</td><td>模型在"预测下一个词"而非"查答案"，不知道时也会生成合理答案</td></tr>
+    <tr><td>Temperature</td><td>采样随机性；0 确定、1 发散</td></tr>
+    <tr><td>Embedding</td><td>词→向量，语义近则距离近</td></tr>
+    <tr><td>Attention / QKV</td><td>每个词同时看所有词并加权；Q 问、K 标签、V 内容</td></tr>
+    <tr><td>位置编码</td><td>给词加顺序信息，否则"我打你/你打我"分不清</td></tr>
+    <tr><td>预训练 / 微调</td><td>海量文本学语言 → 高质量对话数据学"回答"</td></tr>
+    <tr><td>RAG</td><td>检索外部知识拼进 prompt；快、可更新、成本低</td></tr>
+    <tr><td>微调（对比）</td><td>改模型参数；贵、更新慢、适合改行为风格</td></tr>
+    <tr><td>Function Calling</td><td>模型声明"要调工具"→ 代码执行 → 结果回传 → 再生成</td></tr>
+    <tr><td>Agent / ReAct</td><td>Reason → Act → 观察结果 → 循环；模型 + 工具 + 闭环</td></tr>
+    <tr><td>提示注入</td><td>用户内容里藏指令劫持模型；对策：内容与指令隔离、工具数据降权</td></tr>
+  </table>
+</section>
+
+<div class="footer">FitAgent · 学习指南 · 由浅入深思考路程版 · 祝秋招顺利 💪</div>
+
+</div>
+</body>
+</html>

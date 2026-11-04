@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: fitness-agent
+
+  # 启动时执行 schema.sql 建表（IF NOT EXISTS，幂等）
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      encoding: UTF-8
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/fitness?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:fitness}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  ai:
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY:}
+      chat:
+        options:
+          model: deepseek-chat
+
+mybatis-plus:
+  configuration:
+    # 开发期在控制台打印 SQL，方便调试；上线前可移除
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+server:
+  port: ${SERVER_PORT:8080}
+
+jwt:
+  # 用于签发/校验 JWT 的签名密钥（HS256，至少 32 字节）
+  # 部署时务必通过环境变量 JWT_SECRET 覆盖
+  secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+  # token 有效期（小时），7 天
+  expire-hours: 168
+
+logging:
+  level:
+    com.fitness: debug

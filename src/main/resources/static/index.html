@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitAgent · 健身管理</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.9.3/dist/index.css">
+<style>
+  [v-cloak] { display: none; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; font-family: system-ui, "Microsoft YaHei", sans-serif;
+         background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); }
+  .wrap { max-width: 960px; margin: 4vh auto; padding: 0 16px 40px; }
+  .brand { text-align: center; color: #fff; margin-bottom: 20px; }
+  .brand h1 { margin: 0; font-size: 28px; letter-spacing: 4px; font-weight: 700; }
+  .brand p { opacity: .72; margin: 8px 0 0; font-size: 13px; letter-spacing: 1px; }
+  .card { background: #fff; border-radius: 14px; padding: 22px 26px;
+          box-shadow: 0 22px 60px rgba(0,0,0,.38); }
+  .auth-card { max-width: 430px; margin: 0 auto; }
+  .user-head { display: flex; align-items: center; gap: 14px; }
+  .user-head .info { flex: 1; }
+  .user-head .name { margin: 0; font-size: 19px; }
+  .user-head .sub { color: #909399; margin: 4px 0 0; font-size: 13px; }
+  .nav-menu { background: rgba(255,255,255,.12); border-radius: 12px; padding: 6px; margin: 16px 0;
+              display: flex; gap: 6px; }
+  .nav-item { flex: 1; text-align: center; padding: 10px 0; border-radius: 9px; color: #cfe0e8;
+              cursor: pointer; font-size: 14px; transition: all .2s; user-select: none; }
+  .nav-item.on { background: #fff; color: #2c5364; font-weight: 600; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+  .content-card { margin-top: 14px; }
+  .stat-row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .stat { flex: 1; background: #f5f8fa; border-radius: 10px; padding: 14px; text-align: center; }
+  .stat b { display: block; font-size: 26px; color: #2c5364; }
+  .stat span { font-size: 12px; color: #909399; }
+  .section-title { font-size: 15px; font-weight: 700; margin: 18px 0 10px; color: #2c5364;
+                   display: flex; justify-content: space-between; align-items: center; }
+  .list-item { display: flex; justify-content: space-between; align-items: center;
+               padding: 10px 12px; border-bottom: 1px solid #f0f3f5; font-size: 14px; }
+  .list-item:last-child { border-bottom: none; }
+  .muted { color: #909399; font-size: 12px; }
+  .chat-box { height: 380px; overflow-y: auto; background: #f5f8fa; border-radius: 10px;
+              padding: 14px; margin-bottom: 12px; }
+  .msg { margin-bottom: 10px; display: flex; }
+  .msg.user { justify-content: flex-end; }
+  .msg .bubble { max-width: 78%; padding: 9px 13px; border-radius: 12px; font-size: 14px;
+                 line-height: 1.55; white-space: pre-wrap; }
+  .msg.user .bubble { background: #2c5364; color: #fff; border-bottom-right-radius: 3px; }
+  .msg.ai .bubble { background: #fff; border: 1px solid #e3e9ee; border-bottom-left-radius: 3px; }
+  .msg.ai .bubble.loading { color: #909399; }
+  .ai-card { background: #f0f6ff; border: 1px solid #d3e3ff; border-radius: 10px; padding: 14px; margin-top: 12px; }
+  .ai-card h4 { margin: 0 0 6px; color: #2c5364; }
+  .ai-card p { margin: 4px 0; font-size: 13.5px; line-height: 1.6; }
+  .ai-card .tag { font-weight: 700; color: #1f6fb2; }
+  .plan-card { border: 1px solid #e3e9ee; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .plan-card .head { display: flex; justify-content: space-between; align-items: center; }
+  .plan-card .head b { font-size: 15px; }
+  .plan-items { margin-top: 8px; font-size: 13px; color: #555; }
+  .plan-items div { padding: 3px 0; border-bottom: 1px dashed #eef2f5; }
+  .plan-items div:last-child { border-bottom: none; }
+  .empty { text-align: center; color: #b0b8bf; padding: 30px 0; font-size: 13px; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .metric-table { margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <h1>FitAgent</h1>
+    <p>健身管理 · 每日打卡 / 三维记录 / AI 教练</p>
+  </div>
+
+  <div id="app" v-cloak>
+    <!-- ===== 未登录：登录 / 注册 ===== -->
+    <div v-if="!user" class="card auth-card">
+      <el-tabs v-model="authTab" stretch>
+        <el-tab-pane label="登录" name="login">
+          <el-form label-position="top" @submit.prevent>
+            <el-form-item label="用户名"><el-input v-model="loginForm.username" placeholder="请输入用户名" clearable></el-input></el-form-item>
+            <el-form-item label="密码"><el-input v-model="loginForm.password" type="password" show-password placeholder="请输入密码" @keyup.enter="doLogin"></el-input></el-form-item>
+            <el-button type="primary" style="width:100%" :loading="loading" @click="doLogin">登 录</el-button>
+          </el-form>
+        </el-tab-pane>
+        <el-tab-pane label="注册" name="register">
+          <el-form label-position="top" @submit.prevent>
+            <el-form-item label="用户名（3-50位）"><el-input v-model="regForm.username" placeholder="至少 3 个字符"></el-input></el-form-item>
+            <el-form-item label="密码（6-32位）"><el-input v-model="regForm.password" type="password" show-password placeholder="至少 6 位"></el-input></el-form-item>
+            <el-form-item label="昵称"><el-input v-model="regForm.nickname" placeholder="选填，默认同用户名"></el-input></el-form-item>
+            <el-form-item label="身高 (cm)"><el-input-number v-model="regForm.height" :min="120" :max="230" style="width:100%"></el-input-number></el-form-item>
+            <el-form-item label="训练目标">
+              <el-select v-model="regForm.goal" style="width:100%">
+                <el-option label="减脂" value="减脂"></el-option><el-option label="增肌" value="增肌"></el-option>
+                <el-option label="塑形" value="塑形"></el-option><el-option label="保持" value="保持"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-button type="primary" style="width:100%" :loading="loading" @click="doRegister">注 册</el-button>
+          </el-form>
+        </el-tab-pane>
+      </el-tabs>
+    </div>
+
+    <!-- ===== 已登录 ===== -->
+    <template v-else>
+      <div class="card">
+        <div class="user-head">
+          <el-avatar :size="56" style="background:#2c5364;font-size:24px">{{ (user.nickname || user.username)[0].toUpperCase() }}</el-avatar>
+          <div class="info">
+            <div class="name">{{ user.nickname || user.username }}</div>
+            <div class="sub">@{{ user.username }} · 目标：{{ user.goal || '未设置' }} · 身高：{{ user.height ? user.height + 'cm' : '-' }}</div>
+          </div>
+          <el-button size="small" plain @click="logout">退出</el-button>
+        </div>
+      </div>
+
+      <div class="nav-menu">
+        <div v-for="t in navs" :key="t.key" class="nav-item" :class="{on: activeTab === t.key}" @click="switchTab(t.key)">{{ t.label }}</div>
+      </div>
+
+      <div class="card content-card">
+        <!-- ===== 概览 ===== -->
+        <div v-if="activeTab === 'overview'">
+          <div class="stat-row">
+            <div class="stat"><b>{{ streak }}</b><span>连续打卡（天）</span></div>
+            <div class="stat"><b>{{ todayChecked ? '已打卡' : '未打卡' }}</b><span>今日状态</span></div>
+            <div class="stat"><b>{{ checkins.length }}</b><span>累计打卡</span></div>
+          </div>
+          <div class="section-title">AI 阶段性分析
+            <el-button size="small" type="primary" plain :loading="analysisLoading" @click="runAnalysis">生成分析</el-button>
+          </div>
+          <div v-if="analysis" class="ai-card">
+            <h4>📋 {{ analysis.summary }}</h4>
+            <p><span class="tag">亮点：</span>{{ analysis.highlights }}</p>
+            <p><span class="tag">建议：</span>{{ analysis.suggestions }}</p>
+            <p><span class="tag">下一步：</span>{{ analysis.nextStep }}</p>
+          </div>
+          <div v-else class="empty">点击上方按钮，让 AI 教练基于你的真实数据生成一份分析</div>
+        </div>
+
+        <!-- ===== 打卡 ===== -->
+        <div v-else-if="activeTab === 'checkin'">
+          <div class="section-title">今日打卡
+            <el-button type="primary" :disabled="todayChecked" :loading="checkinLoading" @click="doCheckin">
+              {{ todayChecked ? '今天已完成' : '打卡' }}
+            </el-button>
+          </div>
+          <el-input v-model="checkinNote" placeholder="今天练了什么？（选填，如：腿部训练 1 小时）" clearable></el-input>
+          <div class="section-title">历史记录</div>
+          <div v-if="checkins.length">
+            <div v-for="c in checkins" :key="c.id" class="list-item">
+              <span>{{ c.checkinDate }}</span>
+              <span class="muted">{{ c.note || '—' }}</span>
+              <el-button size="small" type="danger" text @click="delCheckin(c.id)">删除</el-button>
+            </div>
+          </div>
+          <div v-else class="empty">还没有打卡记录，开始今天的第一天吧</div>
+        </div>
+
+        <!-- ===== 三维 ===== -->
+        <div v-else-if="activeTab === 'metrics'">
+          <div class="section-title">记录三维数据</div>
+          <div class="form-grid">
+            <el-date-picker v-model="metricForm.recordDate" type="date" value-format="YYYY-MM-DD" placeholder="日期" style="width:100%"></el-date-picker>
+            <el-input-number v-model="metricForm.weight" :min="20" :max="300" placeholder="体重 kg" style="width:100%"></el-input-number>
+            <el-input-number v-model="metricForm.chest" :min="50" :max="200" placeholder="胸围 cm" style="width:100%"></el-input-number>
+            <el-input-number v-model="metricForm.waist" :min="40" :max="200" placeholder="腰围 cm" style="width:100%"></el-input-number>
+            <el-input-number v-model="metricForm.hip" :min="50" :max="200" placeholder="臀围 cm" style="width:100%"></el-input-number>
+            <el-input-number v-model="metricForm.bodyFat" :min="3" :max="60" placeholder="体脂率 %" style="width:100%"></el-input-number>
+          </div>
+          <el-button type="primary" style="width:100%;margin-top:12px" :loading="metricLoading" @click="saveMetric">保存记录</el-button>
+
+          <div class="section-title">趋势曲线（近 30 天）</div>
+          <div id="trendChart" style="width:100%;height:300px"></div>
+
+          <div class="section-title">历史记录</div>
+          <el-table :data="metrics" size="small" class="metric-table">
+            <el-table-column prop="recordDate" label="日期" width="110"></el-table-column>
+            <el-table-column prop="weight" label="体重" width="80"><template #default="{row}">{{ row.weight ?? '-' }}</template></el-table-column>
+            <el-table-column prop="chest" label="胸" width="70"><template #default="{row}">{{ row.chest ?? '-' }}</template></el-table-column>
+            <el-table-column prop="waist" label="腰" width="70"><template #default="{row}">{{ row.waist ?? '-' }}</template></el-table-column>
+            <el-table-column prop="hip" label="臀" width="70"><template #default="{row}">{{ row.hip ?? '-' }}</template></el-table-column>
+            <el-table-column prop="bodyFat" label="体脂%" width="80"><template #default="{row}">{{ row.bodyFat ?? '-' }}</template></el-table-column>
+            <el-table-column label="操作" width="70"><template #default="{row}">
+              <el-button size="small" type="danger" text @click="delMetric(row.id)">删除</el-button>
+            </template></el-table-column>
+          </el-table>
+        </div>
+
+        <!-- ===== 计划 ===== -->
+        <div v-else-if="activeTab === 'plans'">
+          <div class="section-title">AI 模板生成计划</div>
+          <div style="display:flex;gap:10px">
+            <el-input v-model="planName" placeholder="计划名称，如：减脂四周计划" style="flex:1"></el-input>
+            <el-select v-model="planGoal" style="width:130px">
+              <el-option label="减脂" value="减脂"></el-option><el-option label="增肌" value="增肌"></el-option>
+              <el-option label="塑形" value="塑形"></el-option><el-option label="保持" value="保持"></el-option>
+            </el-select>
+            <el-button type="primary" :loading="planLoading" @click="generatePlan">生成</el-button>
+          </div>
+          <div class="section-title">我的计划（{{ plans.length }}）</div>
+          <div v-if="plans.length">
+            <div v-for="p in plans" :key="p.id" class="plan-card">
+              <div class="head">
+                <b>{{ p.name }}</b>
+                <span>
+                  <el-tag size="small" type="success" v-if="p.status === 'ACTIVE'">进行中</el-tag>
+                  <el-tag size="small" v-else>已完成</el-tag>
+                  <el-button size="small" type="danger" text @click="delPlan(p.id)">删除</el-button>
+                </span>
+              </div>
+              <div class="muted">目标：{{ p.goal || '-' }} · {{ p.startDate || '' }} ~ {{ p.endDate || '' }}</div>
+              <div class="plan-items">
+                <div v-for="(it, i) in p.items" :key="i">
+                  <b>周{{ it.dayOfWeek }}</b> {{ it.exercise }} · {{ it.sets || '-' }}组 × {{ it.reps || '-' }}次
+                  <span class="muted">{{ it.weight ? ' · ' + it.weight + 'kg' : '' }} {{ it.note || '' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="empty">还没有计划，选个目标让 AI 帮你生成一份</div>
+        </div>
+
+        <!-- ===== AI 教练 ===== -->
+        <div v-else-if="activeTab === 'ai'">
+          <div class="chat-box" ref="chatBox">
+            <div v-for="(m, i) in chatMessages" :key="i" class="msg" :class="m.role">
+              <div class="bubble" :class="{loading: m.loading}">{{ m.content }}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <el-input v-model="chatInput" placeholder="问问 AI 教练，如：我这周该怎么练？" @keyup.enter="sendChat" :disabled="chatLoading"></el-input>
+            <el-button type="primary" :loading="chatLoading" @click="sendChat">发送</el-button>
+          </div>
+          <div class="muted" style="margin-top:8px">AI 会读取你的真实打卡、三维和计划数据作答；有营养/训练知识库支撑。</div>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3.4.38/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/element-plus@2.9.3/dist/index.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script>
+const { createApp, ref, reactive, onMounted, nextTick } = Vue;
+
+createApp({
+  setup() {
+    // ---------- 状态 ----------
+    const authTab = ref('login');
+    const loading = ref(false);
+    const user = ref(null);
+    const loginForm = reactive({ username: '', password: '' });
+    const regForm = reactive({ username: '', password: '', nickname: '', height: 175, goal: '增肌' });
+
+    const navs = [
+      { key: 'overview', label: '概览' },
+      { key: 'checkin', label: '打卡' },
+      { key: 'metrics', label: '三维' },
+      { key: 'plans', label: '计划' },
+      { key: 'ai', label: 'AI 教练' },
+    ];
+    const activeTab = ref('overview');
+
+    const streak = ref(0);
+    const todayChecked = ref(false);
+    const checkins = ref([]);
+    const checkinNote = ref('');
+    const checkinLoading = ref(false);
+
+    const metrics = ref([]);
+    const trend = ref([]);
+    const metricForm = reactive({ recordDate: '', weight: null, chest: null, waist: null, hip: null, bodyFat: null });
+    const metricLoading = ref(false);
+    let chart = null;
+
+    const plans = ref([]);
+    const planName = ref('');
+    const planGoal = ref('减脂');
+    const planLoading = ref(false);
+
+    const chatMessages = ref([]);
+    const chatInput = ref('');
+    const chatLoading = ref(false);
+    const chatBox = ref(null);
+
+    const analysis = ref(null);
+    const analysisLoading = ref(false);
+
+    // ---------- 请求封装 ----------
+    function token() { return localStorage.getItem('fit_token'); }
+    async function api(path, options = {}) {
+      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+      const t = token();
+      if (t) headers['Authorization'] = 'Bearer ' + t;
+      const res = await fetch('/api' + path, { ...options, headers });
+      const body = await res.json();
+      if (body.code !== 0) throw new Error(body.message || ('HTTP ' + res.status));
+      return body.data;
+    }
+
+    // ---------- 认证 ----------
+    async function doLogin() {
+      loading.value = true;
+      try {
+        const data = await api('/auth/login', { method: 'POST', body: JSON.stringify(loginForm) });
+        localStorage.setItem('fit_token', data.token);
+        user.value = data.user;
+        ElementPlus.ElMessage.success('欢迎回来，' + data.user.username);
+      } catch (e) { ElementPlus.ElMessage.error(e.message); }
+      finally { loading.value = false; }
+    }
+    async function doRegister() {
+      loading.value = true;
+      try {
+        const data = await api('/auth/register', { method: 'POST', body: JSON.stringify(regForm) });
+        localStorage.setItem('fit_token', data.token);
+        user.value = data.user;
+        ElementPlus.ElMessage.success('注册成功，已自动登录');
+      } catch (e) { ElementPlus.ElMessage.error(e.message); }
+      finally { loading.value = false; }
+    }
+    async function loadMe() {
+      if (!token()) return;
+      try { user.value = await api('/auth/me'); }
+      catch { logout(); }
+    }
+    function logout() {
+      localStorage.removeItem('fit_token');
+      user.value = null;
+      authTab.value = 'login';
+      activeTab.value = 'overview';
+    }
+
+    // ---------- 打卡 ----------
+    async function loadCheckins() {
+      try {
+        checkins.value = await api('/checkins');
+        streak.value = await api('/checkins/streak');
+        const today = new Date().toISOString().slice(0, 10);
+        todayChecked.value = checkins.value.some(c => c.checkinDate === today);
+      } catch (e) { ElementPlus.ElMessage.error('加载打卡失败：' + e.message); }
+    }
+    async function doCheckin() {
+      checkinLoading.value = true;
+      try {
+        await api('/checkins', { method: 'POST', body: JSON.stringify({ note: checkinNote.value }) });
+        checkinNote.value = '';
+        ElementPlus.ElMessage.success('打卡成功');
+        await loadCheckins();
+      } catch (e) { ElementPlus.ElMessage.error(e.message); }
+      finally { checkinLoading.value = false; }
+    }
+    async function delCheckin(id) {
+      try { await api('/checkins/' + id, { method: 'DELETE' }); await loadCheckins(); }
+      catch (e) { ElementPlus.ElMessage.error(e.message); }
+    }
+
+    // ---------- 三维 ----------
+    async function loadMetrics() {
+      try {
+        metrics.value = await api('/metrics');
+        trend.value = await api('/metrics/trend?days=30');
+        renderChart();
+      } catch (e) { ElementPlus.ElMessage.error('加载三维数据失败：' + e.message); }
+    }
+    async function saveMetric() {
+      if (!metricForm.recordDate) { ElementPlus.ElMessage.warning('请选择日期'); return; }
+      metricLoading.value = true;
+      try {
+        await api('/metrics', { method: 'POST', body: JSON.stringify(metricForm) });
+        Object.assign(metricForm, { recordDate: '', weight: null, chest: null, waist: null, hip: null, bodyFat: null });
+        ElementPlus.ElMessage.success('已保存');
+        await loadMetrics();
+      } catch (e) { ElementPlus.ElMessage.error(e.message); }
+      finally { metricLoading.value = false; }
+    }
+    async function delMetric(id) {
+      try { await api('/metrics/' + id, { method: 'DELETE' }); await loadMetrics(); }
+      catch (e) { ElementPlus.ElMessage.error(e.message); }
+    }
+    function renderChart() {
+      if (!window.echarts) return;
+      const el = document.getElementById('trendChart');
+      if (!el) return;
+      if (!chart) chart = echarts.init(el);
+      const series = [
+        { name: '体重', key: 'weight' }, { name: '胸围', key: 'chest' },
+        { name: '腰围', key: 'waist' }, { name: '臀围', key: 'hip' }, { name: '体脂%', key: 'bodyFat' },
+      ];
+      chart.setOption({
+        tooltip: { trigger: 'axis' },
+        legend: { data: series.map(s => s.name), bottom: 0 },
+        grid: { left: 40, right: 16, top: 16, bottom: 36 },
+        xAxis: { type: 'category', data: trend.value.map(t => t.date) },
+        yAxis: { type: 'value', scale: true },
+        series: series.map(s => ({
+          name: s.name, type: 'line', connectNulls: true, smooth: true,
+          data: trend.value.map(t => t[s.key]),
+        })),
+      });
+    }
+
+    // ---------- 计划 ----------
+    async function loadPlans() {
+      try { plans.value = await api('/plans'); }
+      catch (e) { ElementPlus.ElMessage.error('加载计划失败：' + e.message); }
+    }
+    async function generatePlan() {
+      if (!planName.value) { ElementPlus.ElMessage.warning('先填个计划名称'); return; }
+      planLoading.value = true;
+      try {
+        await api('/plans/generate?name=' + encodeURIComponent(planName.value) + '&goal=' + encodeURIComponent(planGoal.value),
+          { method: 'POST' });
+        planName.value = '';
+        ElementPlus.ElMessage.success('计划已生成');
+        await loadPlans();
+      } catch (e) { ElementPlus.ElMessage.error(e.message); }
+      finally { planLoading.value = false; }
+    }
+    async function delPlan(id) {
+      try { await api('/plans/' + id, { method: 'DELETE' }); await loadPlans(); }
+      catch (e) { ElementPlus.ElMessage.error(e.message); }
+    }
+
+    // ---------- AI 教练 ----------
+    async function sendChat() {
+      const msg = chatInput.value.trim();
+      if (!msg || chatLoading.value) return;
+      chatMessages.value.push({ role: 'user', content: msg });
+      chatMessages.value.push({ role: 'ai', content: '思考中…', loading: true });
+      chatInput.value = '';
+      scrollChat();
+      chatLoading.value = true;
+      try {
+        const data = await api('/ai/chat', { method: 'POST', body: JSON.stringify({ message: msg }) });
+        const last = chatMessages.value[chatMessages.value.length - 1];
+        last.content = data.reply;
+        last.loading = false;
+      } catch (e) {
+        const last = chatMessages.value[chatMessages.value.length - 1];
+        last.content = '出错了：' + e.message;
+        last.loading = false;
+      }
+      finally { chatLoading.value = false; scrollChat(); }
+    }
+    async function runAnalysis() {
+      analysisLoading.value = true;
+      try {
+        analysis.value = await api('/ai/analysis', { method: 'POST' });
+        ElementPlus.ElMessage.success('分析完成');
+      } catch (e) { ElementPlus.ElMessage.error(e.message); }
+      finally { analysisLoading.value = false; }
+    }
+    function scrollChat() {
+      nextTick(() => { if (chatBox.value) chatBox.value.scrollTop = chatBox.value.scrollHeight; });
+    }
+
+    // ---------- 切换 ----------
+    function switchTab(key) {
+      activeTab.value = key;
+      if (key === 'overview') loadCheckins();
+      if (key === 'checkin') loadCheckins();
+      if (key === 'metrics') loadMetrics();
+      if (key === 'plans') loadPlans();
+      if (key === 'ai') nextTick(scrollChat);
+    }
+
+    onMounted(async () => {
+      await loadMe();
+      if (user.value) loadCheckins();
+    });
+
+    return {
+      authTab, loading, user, loginForm, regForm, doLogin, doRegister, logout,
+      navs, activeTab, switchTab,
+      streak, todayChecked, checkins, checkinNote, checkinLoading, doCheckin, delCheckin,
+      metrics, metricForm, metricLoading, saveMetric, delMetric,
+      plans, planName, planGoal, planLoading, generatePlan, delPlan,
+      chatMessages, chatInput, chatLoading, chatBox, sendChat,
+      analysis, analysisLoading, runAnalysis,
+    };
+  }
+}).use(ElementPlus).mount('#app');
+</script>
+</body>
+</html>
